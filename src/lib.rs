@@ -61,8 +61,16 @@ fn determine_rank<'a>(hand: &'a str) -> HandRanking {
 
     let (ranks, suits) = get_ranks_and_suits(hand);
 
-    if is_straight(ranks) & is_flush(suits) {
+    if is_straight(&ranks) & is_flush(&suits) {
         return HandRanking::StraightFlush;
+    }
+
+    if is_flush(&suits) {
+        return HandRanking::Flush;
+    }
+
+    if is_straight(&ranks) {
+        return HandRanking::Straight;
     }
 
     HandRanking::HighCard
@@ -81,23 +89,21 @@ fn get_ranks_and_suits<'a>(hand: &'a str) -> (Vec<char>, Vec<char>) {
     (ranks, suits)
 }
 
-fn is_straight(ranks: Vec<char>) -> bool {
+fn is_straight(ranks: &Vec<char>) -> bool {
     let order: Vec<char> = "A12345678910JQKA".chars().collect();
 
     for straight in order.windows(5) {
-        let is_straight = ranks
-            .iter()
-            .all(|rank| straight.contains(rank));
+        let is_straight = ranks.iter().all(|rank| straight.contains(rank));
 
         if is_straight {
-            return true
+            return true;
         }
     }
 
     false
 }
 
-fn is_flush(ranks: Vec<char>) -> bool {
+fn is_flush(ranks: &Vec<char>) -> bool {
     let first = ranks[0];
     ranks.iter().all(|rank| rank.eq(&first))
 }
