@@ -90,20 +90,40 @@ fn get_ranks_and_suits<'a>(hand: &'a str) -> (Vec<char>, Vec<char>) {
 }
 
 fn is_straight(ranks: &Vec<char>) -> bool {
-    let order: Vec<char> = "A12345678910JQKA".chars().collect();
+    let order: Vec<char> = "A2345678910JQKA".chars().collect();
 
     for straight in order.windows(5) {
-        let is_straight = ranks.iter().all(|rank| straight.contains(rank));
-
-        if is_straight {
-            return true;
+        if ranks.iter().all(|rank| straight.contains(rank)) {
+            return true
         }
     }
 
     false
 }
 
-fn is_flush(ranks: &Vec<char>) -> bool {
-    let first = ranks[0];
-    ranks.iter().all(|rank| rank.eq(&first))
+fn is_flush(suits: &Vec<char>) -> bool {
+    let first = suits[0];
+    suits.iter().all(|suit| suit.eq(&first))
+}
+
+fn group_ranks(ranks: &Vec<char>) -> (i16, i16) {
+    let mut left_group: Vec<&char> = vec![];
+    let mut right_group: Vec<&char> = vec![];
+
+    for rank in ranks {
+        if let Ordering::Equal = rank.cmp(left_group[0]) {
+            left_group.push(rank)
+        }
+
+        if left_group.is_empty() {
+            left_group.push(rank)
+        }
+
+        if let Ordering::Equal = rank.cmp(right_group[0]) {
+
+        }
+
+    }
+
+    (left_group.len() as i16, right_group.len() as i16)
 }
