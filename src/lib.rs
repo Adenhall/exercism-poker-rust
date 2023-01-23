@@ -13,6 +13,8 @@ enum HandRanking {
     StraightFlush,
 }
 
+const CARD_RANKING: &str = "A2345678910JQKA";
+
 struct Winners<'a> {
     rank: HandRanking,
     hands: Vec<&'a str>,
@@ -60,9 +62,18 @@ fn determine_rank<'a>(hand: &'a str) -> HandRanking {
     // "3S 4S 5D 6H JH"
 
     let (ranks, suits) = get_ranks_and_suits(hand);
+    let grouped_ranks = group_ranks(&ranks);
 
     if is_straight(&ranks) & is_flush(&suits) {
         return HandRanking::StraightFlush;
+    }
+
+    if let (4, _) = grouped_ranks {
+        return HandRanking::FourOfAKind;
+    }
+
+    if let (3, 2) = grouped_ranks {
+        return HandRanking::FullHouse;
     }
 
     if is_flush(&suits) {
@@ -71,6 +82,18 @@ fn determine_rank<'a>(hand: &'a str) -> HandRanking {
 
     if is_straight(&ranks) {
         return HandRanking::Straight;
+    }
+
+    if let (3, _) = grouped_ranks {
+        return HandRanking::ThreeOfAKind;
+    }
+
+    if let (2, 2) = grouped_ranks {
+        return HandRanking::TwoPair;
+    }
+
+    if let (2, _) = grouped_ranks {
+        return HandRanking::OnePair;
     }
 
     HandRanking::HighCard
@@ -90,11 +113,11 @@ fn get_ranks_and_suits<'a>(hand: &'a str) -> (Vec<char>, Vec<char>) {
 }
 
 fn is_straight(ranks: &Vec<char>) -> bool {
-    let order: Vec<char> = "A2345678910JQKA".chars().collect();
+    let order: Vec<char> = CARD_RANKING.chars().collect();
 
     for straight in order.windows(5) {
         if ranks.iter().all(|rank| straight.contains(rank)) {
-            return true
+            return true;
         }
     }
 
@@ -107,23 +130,24 @@ fn is_flush(suits: &Vec<char>) -> bool {
 }
 
 fn group_ranks(ranks: &Vec<char>) -> (i16, i16) {
-    let mut left_group: Vec<&char> = vec![];
-    let mut right_group: Vec<&char> = vec![];
+    let mut cloned_ranks = ranks.clone();
+    cloned_ranks.sort();
+    let mut result = (1, 0);
+    for pair in cloned_ranks.windows(2) {
+        if (result.1 as i16) == 0 {
+            if pair[0] == pair[1] {
+                result.0 += 1;
+            }
 
-    for rank in ranks {
-        if let Ordering::Equal = rank.cmp(left_group[0]) {
-            left_group.push(rank)
+            if pair[0] != pair[1] {
+                result.1 += 1;
+            }
         }
 
-        if left_group.is_empty() {
-            left_group.push(rank)
+        if pair[0] == pair[1] {
+            result.1 += 1;
         }
-
-        if let Ordering::Equal = rank.cmp(right_group[0]) {
-
-        }
-
     }
 
-    (left_group.len() as i16, right_group.len() as i16)
+    (result.0.max(result.1), result.0.min(result.1))
 }
