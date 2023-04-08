@@ -32,8 +32,8 @@ impl<'a> Winners<'a> {
         self.hands.push(hand);
     }
 
-    fn renew_winners(&mut self, hand: &'a str) {
-        self.rank = determine_rank(hand);
+    fn renew_winners(&mut self, hand: &'a str, hand_ranking: HandRanking) {
+        self.rank = hand_ranking;
         self.hands = vec![hand];
     }
 }
@@ -47,11 +47,10 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     for hand in hands {
         let next_rank = determine_rank(hand);
         let current_rank = &winners.rank;
-
         match current_rank.cmp(&next_rank) {
             Ordering::Equal => winners.add_new_winner(hand),
-            Ordering::Less => winners.renew_winners(hand),
-            _ => (),
+            Ordering::Less => winners.renew_winners(hand, next_rank),
+            Ordering::Greater => (),
         }
     }
 
@@ -60,13 +59,7 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
 
 fn determine_rank<'a>(hand: &'a str) -> HandRanking {
     let (ranks, suits) = get_ranks_and_suits(hand);
-    let score = ranks.chunks(2).fold(0, |_, pair| {
-
-        let first_idx = CARD_RANKING.iter().position(|x| x == pair.first().unwrap()).unwrap_or(0);
-        let second_idx = CARD_RANKING.iter().position(|x| x == pair.last().unwrap()).unwrap_or(0);
-
-        first_idx.max(second_idx) as i16
-    });
+    let score = get_high_score(&ranks);
     let grouped_ranks = group_ranks(&ranks);
 
     if is_straight(&ranks) & is_flush(&suits) {
@@ -137,25 +130,32 @@ fn is_flush(suits: &Vec<char>) -> bool {
     suits.iter().all(|suit| suit.eq(&first))
 }
 
-fn group_ranks(ranks: &Vec<char>) -> (i16, i16) {
+fn group_ranks(ranks: &[char]) -> (i16, i16) {
     let mut cloned_ranks = ranks.to_vec();
     cloned_ranks.sort();
-    let mut result = (1, 0);
-    for pair in cloned_ranks.windows(2) {
-        if (result.1 as i16) == 0 {
+    let (left, right) = cloned_ranks.windows(2).fold((1, 0), |acc, pair| {
+        let (mut left, mut right) = acc;
+        if right == 0 {
             if pair[0] == pair[1] {
-                result.0 += 1;
+                left += 1;
             }
 
             if pair[0] != pair[1] {
-                result.1 += 1;
+                right += 1;
             }
         }
 
         if pair[0] == pair[1] {
-            result.1 += 1;
+            right += 1;
         }
-    }
+        (left, right)
+    });
+    (left.max(right), left.min(right))
+}
 
-    (result.0.max(result.1), result.0.min(result.1))
+fn get_high_score(ranks: &Vec<char>) -> i16 {
+    ranks.iter().fold(0, |acc, rank| {
+        let rank_by_idx = CARD_RANKING.iter().position(|x| x == rank).unwrap_or(0) as i16;
+        rank_by_idx.max(acc)
+    })
 }
