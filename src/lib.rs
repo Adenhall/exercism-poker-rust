@@ -13,18 +13,20 @@ enum HandRanking {
     StraightFlush(i16),
 }
 
-const CARD_RANKING: [char; 14] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const CARD_RANKING: [char; 14] = [
+    'A', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
+];
 
 struct Winners<'a> {
     rank: HandRanking,
-    hands: Vec<&'a str>
+    hands: Vec<&'a str>,
 }
 
 impl<'a> Winners<'a> {
     fn new() -> Self {
         Winners {
             rank: HandRanking::HighCard(0),
-            hands: vec![]
+            hands: vec![],
         }
     }
 
@@ -66,7 +68,7 @@ fn determine_rank<'a>(hand: &'a str) -> HandRanking {
         return HandRanking::StraightFlush(score);
     }
 
-    if let (4, _) = grouped_ranks {
+    if let (4, 0) = grouped_ranks {
         return HandRanking::FourOfAKind(score);
     }
 
@@ -82,7 +84,7 @@ fn determine_rank<'a>(hand: &'a str) -> HandRanking {
         return HandRanking::Straight(score);
     }
 
-    if let (3, _) = grouped_ranks {
+    if let (3, 0) = grouped_ranks {
         return HandRanking::ThreeOfAKind(score);
     }
 
@@ -90,7 +92,7 @@ fn determine_rank<'a>(hand: &'a str) -> HandRanking {
         return HandRanking::TwoPair(score);
     }
 
-    if let (2, _) = grouped_ranks {
+    if let (2, 0) = grouped_ranks {
         return HandRanking::OnePair(score);
     }
 
@@ -133,24 +135,34 @@ fn is_flush(suits: &Vec<char>) -> bool {
 fn group_ranks(ranks: &[char]) -> (i16, i16) {
     let mut cloned_ranks = ranks.to_vec();
     cloned_ranks.sort();
-    let (left, right) = cloned_ranks.windows(2).fold((1, 0), |acc, pair| {
-        let (mut left, mut right) = acc;
-        if right == 0 {
-            if pair[0] == pair[1] {
-                left += 1;
-            }
-
-            if pair[0] != pair[1] {
-                right += 1;
-            }
+    let first_four = {
+        let first = &cloned_ranks[..=3].first().unwrap();
+        let last = &cloned_ranks[..=3].last().unwrap();
+        match first.eq(last) {
+            true => &cloned_ranks[..=3],
+            false => &cloned_ranks[1..=4],
         }
-
-        if pair[0] == pair[1] {
-            right += 1;
+    };
+    let first_four_are_same = first_four.first().map_or(false, |first| first_four.iter().all(|elem| elem == first));
+    let first_three = {
+        let first = &cloned_ranks[..=2].first().unwrap();
+        let last = &cloned_ranks[..=2].last().unwrap();
+        match first.eq(last) {
+            true => &cloned_ranks[..=2],
+            false => &cloned_ranks[2..=4],
         }
-        (left, right)
-    });
-    (left.max(right), left.min(right))
+    };
+    let first_three_are_same = first_three.first().map_or(false, |first| first_three.iter().all(|elem| elem == first));
+
+    cloned_ranks.dedup();
+    match cloned_ranks.len() {
+        2 if first_four_are_same => (4, 0),
+        2 => (3, 2),
+        3 if first_three_are_same => (3, 0),
+        3 => (2, 2),
+        4 => (2, 0),
+        _ => (0, 0)
+    }
 }
 
 fn get_high_score(ranks: &Vec<char>) -> i16 {
