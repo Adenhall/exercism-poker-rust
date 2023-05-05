@@ -133,29 +133,29 @@ fn is_flush(suits: &Vec<char>) -> bool {
 }
 
 fn group_ranks(ranks: &[char]) -> (i16, i16) {
-    let mut cloned_ranks = ranks.to_vec();
-    cloned_ranks.sort();
+    let mut sorted_ranks = ranks.to_vec();
+    sorted_ranks.sort();
     let first_four = {
-        let first = &cloned_ranks[..=3].first().unwrap();
-        let last = &cloned_ranks[..=3].last().unwrap();
+        let first = &sorted_ranks[..=3].first().unwrap();
+        let last = &sorted_ranks[..=3].last().unwrap();
         match first.eq(last) {
-            true => &cloned_ranks[..=3],
-            false => &cloned_ranks[1..=4],
+            true => &sorted_ranks[..=3],
+            false => &sorted_ranks[1..=4],
         }
     };
     let first_four_are_same = first_four.first().map_or(false, |first| first_four.iter().all(|elem| elem == first));
     let first_three = {
-        let first = &cloned_ranks[..=2].first().unwrap();
-        let last = &cloned_ranks[..=2].last().unwrap();
+        let first = &sorted_ranks[..=2].first().unwrap();
+        let last = &sorted_ranks[..=2].last().unwrap();
         match first.eq(last) {
-            true => &cloned_ranks[..=2],
-            false => &cloned_ranks[2..=4],
+            true => &sorted_ranks[..=2],
+            false => &sorted_ranks[2..=4],
         }
     };
     let first_three_are_same = first_three.first().map_or(false, |first| first_three.iter().all(|elem| elem == first));
 
-    cloned_ranks.dedup();
-    match cloned_ranks.len() {
+    sorted_ranks.dedup();
+    match sorted_ranks.len() {
         2 if first_four_are_same => (4, 0),
         2 => (3, 2),
         3 if first_three_are_same => (3, 0),
