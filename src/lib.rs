@@ -2,15 +2,15 @@ use std::cmp::Ordering;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum HandRanking {
-    HighCard(i16),
-    OnePair(i16),
-    TwoPair(i16),
-    ThreeOfAKind(i16),
-    Straight(i16),
-    Flush(i16),
-    FullHouse(i16),
-    FourOfAKind(i16),
-    StraightFlush(i16),
+    HighCard(i16, i16, i16),
+    OnePair(i16, i16, i16),
+    TwoPair(i16, i16, i16),
+    ThreeOfAKind(i16, i16, i16),
+    Straight(i16, i16, i16),
+    Flush(i16, i16, i16),
+    FullHouse(i16, i16, i16),
+    FourOfAKind(i16, i16, i16),
+    StraightFlush(i16, i16, i16),
 }
 
 const CARD_RANKING: [char; 14] = [
@@ -25,7 +25,7 @@ struct Winners<'a> {
 impl<'a> Winners<'a> {
     fn new() -> Self {
         Winners {
-            rank: HandRanking::HighCard(0),
+            rank: HandRanking::HighCard(0, 0, 0),
             hands: vec![],
         }
     }
@@ -61,42 +61,42 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
 
 fn determine_rank<'a>(hand: &'a str) -> HandRanking {
     let (ranks, suits) = get_ranks_and_suits(hand);
-    let score = get_high_score(&ranks);
+    let (high_score, low_score, kicker) = get_scores(&ranks);
     let grouped_ranks = group_ranks(&ranks);
 
     if is_straight(&ranks) & is_flush(&suits) {
-        return HandRanking::StraightFlush(score);
+        return HandRanking::StraightFlush(high_score, low_score, kicker);
     }
 
     if let (4, 0) = grouped_ranks {
-        return HandRanking::FourOfAKind(score);
+        return HandRanking::FourOfAKind(high_score, low_score, kicker);
     }
 
     if let (3, 2) = grouped_ranks {
-        return HandRanking::FullHouse(score);
+        return HandRanking::FullHouse(high_score, low_score, kicker);
     }
 
     if is_flush(&suits) {
-        return HandRanking::Flush(score);
+        return HandRanking::Flush(high_score, low_score, kicker);
     }
 
     if is_straight(&ranks) {
-        return HandRanking::Straight(score);
+        return HandRanking::Straight(high_score, low_score, kicker);
     }
 
     if let (3, 0) = grouped_ranks {
-        return HandRanking::ThreeOfAKind(score);
+        return HandRanking::ThreeOfAKind(high_score, low_score, kicker);
     }
 
     if let (2, 2) = grouped_ranks {
-        return HandRanking::TwoPair(score);
+        return HandRanking::TwoPair(high_score, low_score, kicker);
     }
 
     if let (2, 0) = grouped_ranks {
-        return HandRanking::OnePair(score);
+        return HandRanking::OnePair(high_score, low_score, kicker);
     }
 
-    HandRanking::HighCard(score)
+    HandRanking::HighCard(high_score, low_score, kicker)
 }
 
 fn get_ranks_and_suits<'a>(hand: &'a str) -> (Vec<char>, Vec<char>) {
@@ -143,7 +143,9 @@ fn group_ranks(ranks: &[char]) -> (i16, i16) {
             false => &sorted_ranks[1..=4],
         }
     };
-    let first_four_are_same = first_four.first().map_or(false, |first| first_four.iter().all(|elem| elem == first));
+    let first_four_are_same = first_four
+        .first()
+        .map_or(false, |first| first_four.iter().all(|elem| elem == first));
     let first_three = {
         let first = &sorted_ranks[..=2].first().unwrap();
         let last = &sorted_ranks[..=2].last().unwrap();
@@ -152,7 +154,9 @@ fn group_ranks(ranks: &[char]) -> (i16, i16) {
             false => &sorted_ranks[2..=4],
         }
     };
-    let first_three_are_same = first_three.first().map_or(false, |first| first_three.iter().all(|elem| elem == first));
+    let first_three_are_same = first_three
+        .first()
+        .map_or(false, |first| first_three.iter().all(|elem| elem == first));
 
     sorted_ranks.dedup();
     match sorted_ranks.len() {
@@ -161,13 +165,18 @@ fn group_ranks(ranks: &[char]) -> (i16, i16) {
         3 if first_three_are_same => (3, 0),
         3 => (2, 2),
         4 => (2, 0),
-        _ => (0, 0)
+        _ => (0, 0),
     }
 }
 
-fn get_high_score(ranks: &Vec<char>) -> i16 {
-    ranks.iter().fold(0, |acc, rank| {
-        let rank_by_idx = CARD_RANKING.iter().position(|x| x == rank).unwrap_or(0) as i16;
-        rank_by_idx.max(acc)
-    })
+fn get_scores(ranks: &Vec<char>) -> (i16, i16, i16) {
+    let mut ranks_by_index = ranks
+        .iter()
+        .map(|rank| CARD_RANKING.iter().position(|r| r == rank).unwrap() as i16)
+        .collect::<Vec<i16>>();
+    ranks_by_index.sort();
+    ranks_by_index.dedup();
+    ranks_by_index.reverse();
+
+    (ranks_by_index[0], ranks_by_index[1], ranks_by_index[2])
 }
